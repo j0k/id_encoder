@@ -18,7 +18,6 @@ using namespace std;
 #define FOR_IT(it,argv) \
 for ( auto it = argv.begin(); it != argv.end(); it++ )
 
-
 #define FOREACH_CHAR(ch, chars) \
 char * ch = (char*) chars; \
 while (* ch != 0)
@@ -255,8 +254,6 @@ class Huffman{
       cout << endl;
 
       PDEBUG_CODE(buffer);
-      //cout << memblock2 << memblock2 << endl;
     }
-
 
 };
