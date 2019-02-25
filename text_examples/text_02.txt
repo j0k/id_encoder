@@ -1,0 +1,5 @@
+this is annnnnnnnnnnnnnnniiiiinnnnnnnnnnnnnnnn example for huffman encoding
+with two lines
+and with third one
+THIS IS IT. THIS IS WERE CODE BELONG
+THIS is line number 5

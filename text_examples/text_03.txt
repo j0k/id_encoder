@@ -1,0 +1,4 @@
+this is annnnnnnnnnnnnnnniiiiinnnnnnnnnnnnnnnn example for huffman encoding
+with two lines
+and with third one
+line number 5
