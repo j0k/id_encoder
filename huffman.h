@@ -42,16 +42,31 @@ struct symbol {
 };
 
 typedef vector<char> tcode;
-typedef pair<char, vector<char>> pair_code;
+struct pair_code{
+  char letter; // first
+  tcode code;
+};
+
+struct t_code_desc{
+  int len;
+  int num;
+  bool operator< (const t_code_desc &ref) const {
+    return (len < ref.len) & (num < ref.num);
+  }
+};
+
+
+//typedef pair<char, vector<char>> pair_code;
 typedef vector<pair_code> huffman_codes;
 typedef priority_queue<symbol, std::deque<symbol>, std::greater<symbol> > djikstra_heap;
 
 class Huffman{
   map<char,int> weights;
 
-  map<pair<int,int>,char> mdecode;
-  map<char,tcode> mcode;
+  map<t_code_desc, char> mdecode;
+  map<char,tcode> mcode, mcodeR;
   huffman_codes codes;
+  huffman_codes codesR;
 
   public:
     void calc_weight(const char * text){
@@ -99,37 +114,53 @@ class Huffman{
         symbol hi = heap.top(); heap.pop();
 
         for (int i: lo.ref_code)
-          codes[i].second.push_back(0);
+          codes[i].code.push_back(0);
 
         for (int i: hi.ref_code)
-          codes[i].second.push_back(1);
+          codes[i].code.push_back(1);
 
         CONCAT(vec, lo.ref_code, hi.ref_code);
         heap.push({lo.w + hi.w, vec});
       }
 
+      //codesR = codes.copy();
+      copy(codes.begin(), codes.end(), back_inserter(codesR));
+
+      FOR_IT(it,codesR){
+       reverse((*it).code.begin(), (*it).code.end());
+      }
+
       FOR_IT(it,codes){
-        reverse((*it).second.begin(),(*it).second.end());
+       reverse((*it).code.begin(),(*it).code.end());
       }
     }
 
     void print_codes(){
       FOR_IT(it, codes){
-        cout << it->first << " : " << weights[it->first] << "\t: ";
-        cout << code2num( it->second ).second << "\t: ";
-        FOR_IT(itc, it->second)
+        cout << it->letter << " : " << weights[it->letter] << "\t: ";
+        cout << code2num( it->code ).num << "\t: ";
+        FOR_IT(itc, it->code)
         {
           cout << (char) (*itc+(int)'0');
         }
         cout << endl;
-
+      }
+      cout << "reversed" << endl;
+      FOR_IT(it, codesR){
+        cout << it->letter << " : " << weights[it->letter] << "\t: ";
+        cout << code2num( it->code ).num << "\t: ";
+        FOR_IT(itc, it->code)
+        {
+          cout << (char) (*itc+(int)'0');
+        }
+        cout << endl;
       }
     }
 
     void table2file(ofstream & file){
       FOR_IT(it, codes){
-        file << it->first << "";
-        FOR_IT(itc, it->second)
+        file << it->letter << "";
+        FOR_IT(itc, it->code)
         {
           file << (char) (*itc + (int)'0');
         }
@@ -146,7 +177,11 @@ class Huffman{
       vector<char> enc;
 
       FOR_IT(it, codes){
-        mcode[it->first] = it->second; // mcode['a'] = {0,1,1,0,1}
+        mcode[it->letter] = it->code; // mcode['a'] = {0,1,1,0,1}
+      }
+
+      FOR_IT(it, codesR){
+        mcodeR[it->letter] = it->code; // mcode['a'] = {0,1,1,0,1}
       }
 
       tcode rawcode;
@@ -167,7 +202,8 @@ class Huffman{
             rawcode.push_back(*it);
           }
 
-          bits2file(fout, rawcode, M8);
+          if (rawcode.size()>=8)
+            bits2file(fout, rawcode, M8);
           c++;
         }
         bits2file(fout, rawcode, rawcode.size());
@@ -191,7 +227,7 @@ class Huffman{
       }
     }
 
-    pair<int,int> code2num(vector<char> code){
+    t_code_desc code2num(vector<char> code){
       int num = 0;
       FOR_IT(it, code){
         num <<= 1;
@@ -201,19 +237,22 @@ class Huffman{
       return {code.size(), num};
     }
 
+    //mdecode << mcodeR;
     void prepare_decode_tbl(){
-      // dict[int (binary form 10101011 of code)] -> {char}
-      for (auto pair_code: mcode){
-        pair<int, int> ln = code2num(pair_code.second);
+      // dict[(len, int (binary form 10101011 of code)] -> {char}
+      for (auto pair_code: mcodeR){
+        t_code_desc ln = code2num(pair_code.second);
         mdecode[ln] = pair_code.first;
       }
+
+      //mdecode
     }
 
     void decode(ifstream & file){
       prepare_decode_tbl();
       unsigned int n;
 
-      vector<char> buffer;
+      tcode buffer;
       file.read((char *) &n, sizeof(int));
 
       cout << n << endl;
@@ -241,8 +280,9 @@ class Huffman{
         iw ++ ;
         code <<= 1;
         code |= *it;
-        if(mdecode.count({iw, code})>0){
-          cout << mdecode[{iw, code}];
+        const t_code_desc desc = {(int) iw, code};
+        if(mdecode.count(desc)>0){
+          cout << mdecode[desc];
           i ++ ;
           code = 0;
           iw   = 0;
@@ -253,7 +293,14 @@ class Huffman{
       }
       cout << endl;
 
-      PDEBUG_CODE(buffer);
+      //PDEBUG_CODE(buffer);
+      int pos;
+      FOR_IT(it, buffer){ \
+        pos ++;
+        cout << (char) (*it + (int)'0'); \
+        if (pos % 8 == 0)
+          cout << " ";
+      };
     }
 
 };
